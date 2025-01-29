@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type envelope map[string]any
@@ -34,6 +35,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 
 	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
 
 	err := dec.Decode(dst)
 	if err != nil {
@@ -56,7 +58,11 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
 
 		case errors.Is(err, io.EOF):
-			return errors.New("body must not be empty")
+		return errors.New("body must not be empty")
+
+		case strings.HasPrefix(err.Error(), "json: unknown field"):
+			fieldName := strings.TrimPrefix(err.Error(), "json:unknown field ")
+			return fmt.Errorf("body contains unknown key %s", fieldName)
 
 		case errors.As(err, &maxBytesError):
 			return fmt.Errorf("body must not be larger than %d bytes", maxBytesError.Limit)

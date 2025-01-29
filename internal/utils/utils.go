@@ -10,3 +10,8 @@ func CustomLogger() *slog.Logger {
 		AddSource: true,
 	}))
 }
+
+// Utility function to send whatsapp message.
+func SendWhatsappMessage(whatsappNumber, message string, arg ...string) {
+	return
+}
