@@ -8,6 +8,7 @@ import (
 	"github.com/Suaralanre/whatsauto_api/internal/validator"
 )
 
+// Handler for new patient's form submission
 func (app *application) NewPatientFormHandler(w http.ResponseWriter, r *http.Request) {
 	var input PatientForm
 
