@@ -160,3 +160,4 @@ func parseEventSubject(subject string) (string, string, string) {
 func SendTemplateWhatsappMsg(whatsappNumber string, message string, arg ...string){
 
 }
+

@@ -110,45 +110,6 @@ func (app *application) getOutlookAccessToken() (string, error) {
 	return result.AccessToken, nil
 }
 
-// func (app *application) fetchCalendarEvents(accessToken string) ([]Event, error) {
-// 	now := time.Now()
-// 	dayAfterTomorrow := now.AddDate(0, 0, 2)
-// 	dayStr := dayAfterTomorrow.Format("2006-01-02")
+func (app *application) sendTemplateMessage(whatsappNumber string, templateName string, arg ...string) {
 
-// 	startDateTime := url.QueryEscape(fmt.Sprintf("%sT00:00:00Z", dayStr))
-// 	endDateTime := url.QueryEscape(fmt.Sprintf("%sT23:59:59Z", dayStr))
-
-// 	userEmail := utils.GetEnv("OUTLOOK_EMAIL", "")
-
-// 	url := fmt.Sprintf(
-// 		"https://graph.microsoft.com/v1.0/users/%s/calendarView?startDateTime=%s&endDateTime=%s&$top=30&$select=start,end,subject,categories",
-// 		userEmail, startDateTime, endDateTime,
-// 	)
-
-// 	var allEvents []Event
-
-// 	for {
-// 		req, err := http.NewRequest(http.MethodGet, url, nil)
-// 		if err != nil {
-// 			app.logError(req, err)
-// 			return nil, err
-// 		}
-
-// 		req.Header.Add("Authorization", "Bearer "+accessToken)
-// 		req.Header.Add("Accept", "application/json")
-// 		req.Header.Add("Prefer", "outlook.timezone=\"Africa/Lagos\"")
-
-// 		client := &http.Client{}
-// 		resp, err := client.Do(req)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		defer resp.Body.Close()
-
-// 		body, err := io.ReadAll(resp.Body)
-// 		if err != nil {
-
-// 		}
-// 	}
-// }
+}

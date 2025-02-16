@@ -1,5 +1,21 @@
 package main
 
+import (
+	"log/slog"
+
+	"cloud.google.com/go/firestore"
+)
+
+type application struct {
+	logger *slog.Logger
+	firestoreclient *FirestoreClient
+
+}
+
+type FirestoreClient struct {
+	client *firestore.Client
+}
+
 type PatientForm struct {
 	Title     string `json:"title"`
 	FirstName string `json:"firstname"`

@@ -10,13 +10,10 @@ import (
 	"github.com/Suaralanre/whatsauto_api/internal/utils"
 )
 
-type application struct {
-	logger *slog.Logger
-}
 
 func main() {
 	logger := utils.CustomLogger()
-	port := utils.GetEnvInt("PORT", 4000)
+	port := utils.GetEnvInt("PORT", 8080)
 	env := utils.GetEnv("ENVIRONMENT", "development")
 
 	app := &application{
