@@ -35,17 +35,24 @@ func (app *application) NewPatientFormHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	image := utils.GetEnv("IMAGE_URL", "")
+	template := utils.GetEnv("WELCOME_TEMPLATE", "")
+
 	// Send whatsapp message to phone number
-	fmt.Fprintf(w, "New Patient: %s %s sent to number %s", input.Title, input.FirstName, input.Whatsapp)
+	// fmt.Fprintf(w, "New Patient: %s %s sent to number %s", input.Title, input.FirstName, input.Whatsapp)
+	err = app.sender.sendWelcomeMessage(input.Whatsapp, template, image, input.FirstName, input.Title)
+	if err != nil{
+		app.logger.Error(err.Error(), "message", "error sending welcome message")
+	}
 }
 
 func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
 
-	accessToken, err := app.getOutlookAccessToken()
-	if err != nil {
-		app.logger.Error(err.Error(), "message", "Error getting Access")
-		return
-	}
+	// accessToken, err := app.getOutlookAccessToken()
+	// if err != nil {
+	// 	app.logger.Error(err.Error(), "message", "Error getting Access")
+	// 	return
+	// }
 
 	now := time.Now()
 	dayAfterTomorrow := now.AddDate(0, 0, 2)
@@ -69,7 +76,7 @@ func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		req.Header.Add("Authorization", "Bearer "+accessToken)
+		req.Header.Add("Authorization", "Bearer "+*app.outlook)
 		req.Header.Add("Accept", "application/json")
 		req.Header.Add("Prefer", "outlook.timezone=\"Africa/Lagos\"")
 
@@ -112,6 +119,7 @@ func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
 
 	for _, event := range events{
 		if strings.HasPrefix(event.Subject, "+") {
+			// add event_id, phonenumber and categories to firestore
 			// send whatsapp message
 			// get response
 			// parse response 

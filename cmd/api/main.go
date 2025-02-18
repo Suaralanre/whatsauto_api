@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Suaralanre/whatsauto_api/internal/models"
 	"github.com/Suaralanre/whatsauto_api/internal/utils"
 )
 
@@ -15,10 +16,23 @@ func main() {
 	logger := utils.CustomLogger()
 	port := utils.GetEnvInt("PORT", 8080)
 	env := utils.GetEnv("ENVIRONMENT", "development")
+	phoneID := utils.GetEnv("PHONE_NUMBER_ID", "")
+	apiUrl := fmt.Sprintf("https://graph.facebook.com/v21.0/%s/messages", phoneID)
+	tokenWA := utils.GetEnv("WHATSAPP_TOKEN", "")
 
 	app := &application{
 		logger: logger,
+		sender: &WhatsAppSender{
+				apiUrl,
+				tokenWA,
+		},
+		firestore: &models.FirestoreClient{},
 	}
+	token, err := app.getOutlookAccessToken()
+	if err != nil{
+		app.logger.Error(err.Error(), "message", "outlook authentication error")
+	}
+	app.outlook = &token
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", port),
@@ -30,7 +44,7 @@ func main() {
 	}
 
 	logger.Info("starting server", "addr", srv.Addr, "env", env)
-	err := srv.ListenAndServe()
-	logger.Error(err.Error())
+	err = srv.ListenAndServe()
+	app.logger.Error(err.Error())
 	os.Exit(1)
 }

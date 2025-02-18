@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -110,6 +111,158 @@ func (app *application) getOutlookAccessToken() (string, error) {
 	return result.AccessToken, nil
 }
 
-func (app *application) sendTemplateMessage(whatsappNumber string, templateName string, arg ...string) {
+func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, name, procedure, day, time string) error {
+	payload := map[string]interface{}{
+		"messaging_product": "whatsapp",
+		"to":                number,
+		"recipient_type":    "individual",
+		"type":              "template",
+		"template": map[string]interface{}{
+			"name": template,
+			"language": map[string]string{
+				"code":   "en",
+				"policy": "deterministic",
+			},
+			"components": []interface{}{
+				// Header (Image)
+				map[string]interface{}{
+					"type": "header",
+					"parameters": []interface{}{
+						map[string]interface{}{
+							"type": "image",
+							"image": map[string]string{
+								"link": imageURL,
+							},
+						},
+					},
+				},
+				// Body (Text Parameters)
+				map[string]interface{}{
+					"type": "body",
+					"parameters": []interface{}{
+						map[string]interface{}{
+							"type":           "text",
+							"parameter_name": "name",
+							"text":           name,
+						},
+						map[string]interface{}{
+							"type":           "text",
+							"parameter_name": "procedure",
+							"text":           procedure,
+						},
+						map[string]interface{}{
+							"type":           "text",
+							"parameter_name": "day",
+							"text":           day,
+						},
+						map[string]interface{}{
+							"type":           "text",
+							"parameter_name": "time",
+							"text":           time,
+						},
+					},
+				},
+			},
+		},
+	}
 
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("Error Serializing payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", w.APIURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("Error creating request: %v", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+w.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	status := resp.StatusCode
+
+	if status == http.StatusOK {
+		return nil
+	}
+	return fmt.Errorf("Error sending whatsapp message: %v", err)
+}
+
+func (w *WhatsAppSender) sendWelcomeMessage(number, template, imageURL, name, title string) error {
+	payload := map[string]interface{}{
+		"messaging_product": "whatsapp",
+		"to":                number,
+		"recipient_type":    "individual",
+		"type":              "template",
+		"template": map[string]interface{}{
+			"name": template,
+			"language": map[string]string{
+				"code":   "en",
+				"policy": "deterministic",
+			},
+			"components": []interface{}{
+				// Header (Image)
+				map[string]interface{}{
+					"type": "header",
+					"parameters": []interface{}{
+						map[string]interface{}{
+							"type": "image",
+							"image": map[string]string{
+								"link": imageURL,
+							},
+						},
+					},
+				},
+				// Body (Text Parameters)
+				map[string]interface{}{
+					"type": "body",
+					"parameters": []interface{}{
+						map[string]interface{}{
+							"type":           "text",
+							"parameter_name": "title",
+							"text":           title,
+						},
+						map[string]interface{}{
+							"type":           "text",
+							"parameter_name": "name",
+							"text":           name,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("Error Serializing payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", w.APIURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("Error creating request: %v", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+w.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	status := resp.StatusCode
+
+	if status == http.StatusOK {
+		return nil
+	}
+	return fmt.Errorf("Error sending whatsapp message: %v", err)
 }

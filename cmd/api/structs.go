@@ -3,17 +3,19 @@ package main
 import (
 	"log/slog"
 
-	"cloud.google.com/go/firestore"
+	"github.com/Suaralanre/whatsauto_api/internal/models"
 )
 
 type application struct {
-	logger *slog.Logger
-	firestoreclient *FirestoreClient
-
+	logger    *slog.Logger
+	sender    *WhatsAppSender
+	firestore *models.FirestoreClient
+	outlook   *string
 }
 
-type FirestoreClient struct {
-	client *firestore.Client
+type WhatsAppSender struct {
+	APIURL string
+	Token  string
 }
 
 type PatientForm struct {
