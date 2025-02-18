@@ -89,7 +89,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 func (app *application) getOutlookAccessToken() (string, error) {
 	tenant_id := utils.GetEnv("TENANT_ID", "")
 	client_id := utils.GetEnv("CLIENT_ID", "")
-	secret := utils.GetEnv("CLIENT_ID", "")
+	secret := utils.GetEnv("SECRET", "")
 
 	cred, err := confidential.NewCredFromSecret(secret)
 	if err != nil {
@@ -241,7 +241,7 @@ func (w *WhatsAppSender) sendWelcomeMessage(number, template, imageURL, name, ti
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("Error Serializing payload: %v", err)
+		return fmt.Errorf("Error Serializing payload: %v", err.Error())
 	}
 
 	req, err := http.NewRequest("POST", w.APIURL, bytes.NewBuffer(jsonData))

@@ -11,12 +11,13 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -tags whatsauto -o \
+RUN CGO_ENABLED=0 \
+    go build -tags whatsauto -o \
     /app/whatsauto_api \
     ./cmd/api
 
 # Final image
-FROM scratch
+FROM gcr.io/distroless/static
 
 WORKDIR /app
 
