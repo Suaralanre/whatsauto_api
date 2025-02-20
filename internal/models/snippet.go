@@ -2,22 +2,19 @@ package models
 
 import "context"
 
-func (f *FirestoreClient) SaveAppointment(phoneNumber, eventID string, categories []string) error {
-	client, err := f.GetFirestoreClient()
-	if err != nil {
-		f.logger.Error(err.Error(), "message", "Unable to get firestore client")
-		return err
-	}
+func (f *FirestoreClient) SaveAppointment(phoneNumber, eventID string) error {
+	client := f.Client
+
 	defer client.Close()
 
-	_, err = client.Collection("appointments").Doc(phoneNumber).Set(context.Background(), Appointment{
+	_, err := client.Collection("appointments").Doc(phoneNumber).Set(context.Background(), Appointment{
 			phoneNumber,
 			eventID,
-			categories,
 	})
 	if err != nil {
-		f.logger.Error(err.Error(), "message", "Error storing appointment")
+		f.Logger.Error(err.Error(), "message", "unable to store Appointment details: phone, eventID")
 	}
-	f.logger.Info("firestore save event","message", "Appointment successfully saved")
+	
+	f.Logger.Info("firestore save event","message", "Appointment successfully saved")
 	return nil
 }

@@ -10,19 +10,20 @@ import (
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/Suaralanre/whatsauto_api/internal/utils"
+	"google.golang.org/api/option"
 )
 
 type FirestoreClient struct {
-	client *firestore.Client
-	logger *slog.Logger
+	Client *firestore.Client
+	Logger *slog.Logger
 }
 
 type Appointment struct {
 	Phonenumber string   `firestore:"phone_number"`
 	EventID     string   `firestore:"event_id"`
-	Categories  []string `firestore:"categories"`
 }
 
+// secretName: Name secret was stored under in google cloud
 func (f *FirestoreClient) GetSecret(secretName string) ([]byte, error) {
 	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
@@ -54,9 +55,17 @@ func (f *FirestoreClient) LoadServiceAccount() ([]byte, error) {
 }
 
 func (f *FirestoreClient) GetFirestoreClient() (*firestore.Client, error) {
+	if f.Client != nil {
+		return f.Client, nil
+	}
+	databaseID := utils.GetEnv("DATABASE_ID", "")
+	serviceAccountKey, err := f.LoadServiceAccount()
+	if err != nil {
+		f.Logger.Error(err.Error(), "message", "Unable to retrieve Firestore service account key from secret manager")
+	}
 	projectID := utils.GetEnv("GOOGLE_PROJECT_ID", "")
 	ctx := context.Background()
-	client, err := firestore.NewClient(ctx, projectID)
+	client, err := firestore.NewClientWithDatabase(ctx, projectID, databaseID, option.WithCredentialsJSON(serviceAccountKey))
 	if err != nil {
 		log.Fatalf("Error creating Firestore client: %v", err)
 	}

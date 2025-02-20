@@ -9,12 +9,46 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 func CustomLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		AddSource: true,
 	}))
+}
+
+// Parses the subject based on the way it was filled in Outlook:
+// It is filled as: [0]: Whatsapp , [1]: Procedure, [2]: Patient Name
+func ParseEventSubject(subject string) (string, string, string) {
+	if !strings.HasPrefix(subject, "+") {
+		return "", "", ""
+	}
+	parts := strings.Split(subject, ",")
+	if len(parts) >= 3 {
+		return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), strings.TrimSpace((parts[2]))
+	}
+	return "", "", ""
+}
+
+// Parses the start and end time from outlook
+func ParseDateTime(datetimeStr, timezone string) (string, error) {
+	// Parse the time without timezone first
+	parsedTime, err := time.Parse("2006-01-02T15:04:05.0000000", datetimeStr)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing event time: %v", err)
+	}
+
+	// Load the location from the timezone string
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return "", fmt.Errorf("Error loading location: %v", err)
+	}
+
+	// Convert the time to the specified timezone
+	parsedTime = parsedTime.In(loc)
+
+	return parsedTime.Format("02 Jan 2006, 03:04 PM"), nil
 }
 
 // Utility function to send whatsapp message
@@ -142,19 +176,6 @@ func SendWhatsappMessage(whatsappNumber, message string, arg ...string) error {
 	}
 
 	return nil
-}
-
-// Parses the subject based on the way it was filled in Outlook:
-// It is filled as: [0]: Whatsapp , [1]: Procedure, [2]: Patient Name
-func parseEventSubject(subject string) (string, string, string) {
-	if !strings.HasPrefix(subject, "+") {
-		return "", "", ""
-	}
-	parts := strings.Split(subject, ",")
-	if len(parts) >= 3 {
-		return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), strings.TrimSpace((parts[2]))
-	}
-	return "", "", ""
 }
 
 func SendTemplateWhatsappMsg(whatsappNumber string, message string, arg ...string) {

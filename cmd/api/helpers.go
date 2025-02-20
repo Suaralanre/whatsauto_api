@@ -111,7 +111,7 @@ func (app *application) getOutlookAccessToken() (string, error) {
 	return result.AccessToken, nil
 }
 
-func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, name, procedure, day, time string) error {
+func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, procedure, day string) error {
 	payload := map[string]interface{}{
 		"messaging_product": "whatsapp",
 		"to":                number,
@@ -142,11 +142,6 @@ func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, name
 					"parameters": []interface{}{
 						map[string]interface{}{
 							"type":           "text",
-							"parameter_name": "name",
-							"text":           name,
-						},
-						map[string]interface{}{
-							"type":           "text",
 							"parameter_name": "procedure",
 							"text":           procedure,
 						},
@@ -154,11 +149,6 @@ func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, name
 							"type":           "text",
 							"parameter_name": "day",
 							"text":           day,
-						},
-						map[string]interface{}{
-							"type":           "text",
-							"parameter_name": "time",
-							"text":           time,
 						},
 					},
 				},

@@ -39,20 +39,14 @@ func (app *application) NewPatientFormHandler(w http.ResponseWriter, r *http.Req
 	template := utils.GetEnv("WELCOME_TEMPLATE", "")
 
 	// Send whatsapp message to phone number
-	// fmt.Fprintf(w, "New Patient: %s %s sent to number %s", input.Title, input.FirstName, input.Whatsapp)
 	err = app.sender.sendWelcomeMessage(input.Whatsapp, template, image, input.FirstName, input.Title)
-	if err != nil{
+	if err != nil {
 		app.logger.Error(err.Error(), "message", "error sending welcome message")
 	}
 }
 
-func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
-
-	// accessToken, err := app.getOutlookAccessToken()
-	// if err != nil {
-	// 	app.logger.Error(err.Error(), "message", "Error getting Access")
-	// 	return
-	// }
+// Handler for Calendar appointments
+func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	dayAfterTomorrow := now.AddDate(0, 0, 2)
@@ -62,6 +56,8 @@ func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
 	endDateTime := url.QueryEscape(fmt.Sprintf("%sT23:59:59Z", dayStr))
 
 	userEmail := utils.GetEnv("OUTLOOK_EMAIL", "")
+	imageURL := utils.GetEnv("IMAGE_URL", "")
+	template := utils.GetEnv("APPOINTMENT_TEMPLATE", "")
 
 	url := fmt.Sprintf(
 		"https://graph.microsoft.com/v1.0/users/%s/calendarView?startDateTime=%s&endDateTime=%s&$top=30&$select=start,end,subject,categories",
@@ -97,9 +93,9 @@ func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
 
 		if resp.StatusCode != http.StatusOK {
 			app.logger.Info("Outlook Issue", "Message", "Unable to get outlook events")
-			return 
+			return
 		}
-		
+
 		var result Result
 
 		// could not use readJSON here because resp is of type http.Response
@@ -108,7 +104,7 @@ func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
 		}
 		// Append the events from this page to all "events"
 		events = append(events, result.Value...)
-		
+
 		if len(events) >= 30 || result.NextPageLink == "" {
 			break
 		}
@@ -117,13 +113,48 @@ func (app *application) CalendarEvents(w http.ResponseWriter, r *http.Request) {
 		url = result.NextPageLink
 	}
 
-	for _, event := range events{
+	for _, event := range events {
 		if strings.HasPrefix(event.Subject, "+") {
-			// add event_id, phonenumber and categories to firestore
+			whatsapp, procedure, _ := utils.ParseEventSubject(event.Subject)
+			startTime, _ := utils.ParseDateTime(event.Start.DateTime, event.Start.Timezone)
+
+			// add event_id, phonenumber to firestore
+			err := app.firestore.SaveAppointment(whatsapp, event.ID)
+			if err != nil {
+				app.logger.Error(err.Error())
+			}
+
 			// send whatsapp message
-			// get response
-			// parse response 
-			// change category
+			err = app.sender.sendAppointmentMessage(whatsapp, template, imageURL, procedure, startTime)
+			if err != nil {
+				app.logger.Error(err.Error(), "message", "error sending welcome message")
+			}
+		} else {
+			app.logger.Info(event.Subject, "message", "Event subject not well formatted")
+			continue
 		}
+		
 	}
+
+}
+
+func (app *application) WhatsappWebhookInitializer(w http.ResponseWriter, r *http.Request) {
+	token := utils.GetEnv("WHATSAPP_WEBHOOK_TOKEN", "secret")
+	mode := r.URL.Query().Get("hub.mode")
+	challenge := r.URL.Query().Get("hub.challenge")
+	verifyToken := r.URL.Query().Get("hub.verify_token")
+
+	if mode == "subscribe" && verifyToken == token {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(challenge))
+		return
+	}
+
+
+}
+
+func (app *application) WhatsappWebhookHandler(w http.ResponseWriter, r *http.Request) {
+					// get response
+					// parse response
+					// change category
 }
