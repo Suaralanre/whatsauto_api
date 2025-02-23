@@ -181,7 +181,7 @@ func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, proc
 	if status == http.StatusOK {
 		return nil
 	}
-	return fmt.Errorf("Error sending whatsapp message: %v", err)
+	return fmt.Errorf("Error sending whatsapp message: %v", http.StatusInternalServerError)
 }
 
 func (w *WhatsAppSender) sendWelcomeMessage(number, template, imageURL, name, title string) error {
@@ -256,3 +256,47 @@ func (w *WhatsAppSender) sendWelcomeMessage(number, template, imageURL, name, ti
 	}
 	return fmt.Errorf("Error sending whatsapp message: %v", err)
 }
+
+func (w *WhatsAppSender) replyWhatsappMessage(number, body, messageID string) error {
+	payload := map[string]interface{}{
+		"messaging_product": "whatsapp",
+		"to":                number,
+		"type":              "text",
+		"text": map[string]interface{}{
+			"body":        body,
+			"preview_url": false,
+		},
+		"context": map[string]interface{}{
+			"message_id": messageID,
+		},
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("Error Serializing payload: %v", err.Error())
+	}
+
+	req, err := http.NewRequest("POST", w.APIURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("Error creating request: %v", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+w.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	status := resp.StatusCode
+
+	if status == http.StatusOK {
+		w.logger.Info("Whatsapp message sent successfully")
+		return nil
+	}
+	return fmt.Errorf("Error sending whatsapp message: %v", err)
+}
+

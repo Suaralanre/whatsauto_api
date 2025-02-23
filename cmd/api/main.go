@@ -35,6 +35,7 @@ func main() {
 		sender: &WhatsAppSender{
 				apiUrl,
 				tokenWA,
+				logger,
 		},
 		firestore: 
 		firestoreClient,

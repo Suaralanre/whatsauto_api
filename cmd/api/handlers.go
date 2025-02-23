@@ -49,7 +49,7 @@ func (app *application) NewPatientFormHandler(w http.ResponseWriter, r *http.Req
 func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
-	dayAfterTomorrow := now.AddDate(0, 0, 2)
+	dayAfterTomorrow := now.AddDate(0, 0, 0)
 	dayStr := dayAfterTomorrow.Format("2006-01-02")
 
 	startDateTime := url.QueryEscape(fmt.Sprintf("%sT00:00:00Z", dayStr))
@@ -133,7 +133,7 @@ func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Req
 			app.logger.Info(event.Subject, "message", "Event subject not well formatted")
 			continue
 		}
-		
+
 	}
 
 }
@@ -146,15 +146,25 @@ func (app *application) WhatsappWebhookInitializer(w http.ResponseWriter, r *htt
 
 	if mode == "subscribe" && verifyToken == token {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(challenge))
+		if _, err := w.Write([]byte(challenge)); err != nil {
+			app.logger.Error(err.Error(), "message", "Unable to verify token hook")
+		}
 		return
-	}
-
-
+}
+	app.logger.Info("200", "message", "Whatsapp hook verified")
 }
 
 func (app *application) WhatsappWebhookHandler(w http.ResponseWriter, r *http.Request) {
-					// get response
-					// parse response
-					// change category
+	// get response and parse response
+	var wrapper struct {
+		Messages []WhatsappButtonMessage `json:"messages"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&wrapper); err != nil {
+		app.logger.Error(err.Error(), "message", "Error decoding webhook response")
+		return
+	}
+	
+	// check if confirm or cancel is clicked
+	// change category
 }

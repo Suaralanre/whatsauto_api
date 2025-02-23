@@ -13,7 +13,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/patients/new", app.NewPatientFormHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/patients/appointments", app.CalendarEventsHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/whatsapp/webhook", app.WhatsappWebhookInitializer)
-	router.HandlerFunc(http.MethodPost, "v1/whatsapp/webhook", app.WhatsappWebhookHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/whatsapp/webhook", app.WhatsappWebhookHandler)
 
 	return router
 }

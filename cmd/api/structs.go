@@ -16,6 +16,7 @@ type application struct {
 type WhatsAppSender struct {
 	APIURL string
 	Token  string
+	logger *slog.Logger
 }
 
 type PatientForm struct {
@@ -40,4 +41,18 @@ type Event struct {
 type Result struct {
 	Value        []Event `json:"value"`
 	NextPageLink string  `json:"@odata.nextLink"`
+}
+
+type WhatsappButtonMessage struct {
+	From string `json:"from"`
+	ID string `json:"id"`
+	Type string `json:"type"`
+	Button struct {
+		Payload string `json:"payload"`
+		Text string `json:"text"`
+	} `json:"button"`
+	Context struct {
+		From string `json:"from"`
+		ID string `json:"id"`
+	} `json:"context"`
 }
