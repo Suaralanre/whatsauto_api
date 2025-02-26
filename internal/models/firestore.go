@@ -2,12 +2,10 @@ package models
 
 import "context"
 
-func (f *FirestoreClient) SaveAppointment(phoneNumber, eventID string) error {
+func (f *FirestoreClient) SaveAppointment(ctx context.Context, phoneNumber, eventID string) error {
 	client := f.Client
 
-	defer client.Close()
-
-	_, err := client.Collection("appointments").Doc(phoneNumber).Set(context.Background(), Appointment{
+	_, err := client.Collection("appointments").Doc(phoneNumber).Set(ctx, Appointment{
 			phoneNumber,
 			eventID,
 	})
@@ -20,14 +18,12 @@ func (f *FirestoreClient) SaveAppointment(phoneNumber, eventID string) error {
 	return nil
 }
 
-func (f *FirestoreClient) GetAppointment(phoneNumber string) (Appointment, error) {
+func (f *FirestoreClient) GetAppointment(ctx context.Context, phoneNumber string) (Appointment, error) {
 	client := f.Client
 
-	defer client.Close()
-
-	doc, err := client.Collection("appointments").Doc(phoneNumber).Get(context.Background())
+	doc, err := client.Collection("appointments").Doc(phoneNumber).Get(ctx)
 	if err != nil {
-		f.Logger.Error(err.Error(), "message", "unable to get Appointment details: phone")
+		f.Logger.Error(err.Error(), "message", "unable to get Appointment details: phoneNumber")
 		return Appointment{}, err
 	}
 
@@ -41,8 +37,6 @@ func (f *FirestoreClient) GetAppointment(phoneNumber string) (Appointment, error
 
 func (f *FirestoreClient) DeleteAppointment(phoneNumber string) error {
 	client := f.Client
-
-	defer client.Close()
 
 	_, err := client.Collection("appointments").Doc(phoneNumber).Delete(context.Background())
 	if err != nil {

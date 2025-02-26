@@ -13,6 +13,9 @@ import (
 	"github.com/Suaralanre/whatsauto_api/internal/validator"
 )
 
+var confirmed string = "Thank you for confirming your appointment. We look forward to seeing you soon."
+var cancelled string = "Your appointment has been cancelled. Kindly place a call or send a whatsapp message to the phone number in the original message to let us know when you will be available."
+
 // Handler for new patient's form submission
 func (app *application) NewPatientFormHandler(w http.ResponseWriter, r *http.Request) {
 	var input PatientForm
@@ -49,7 +52,7 @@ func (app *application) NewPatientFormHandler(w http.ResponseWriter, r *http.Req
 func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
-	dayAfterTomorrow := now.AddDate(0, 0, 0)
+	dayAfterTomorrow := now.AddDate(0, 0, 1)
 	dayStr := dayAfterTomorrow.Format("2006-01-02")
 
 	startDateTime := url.QueryEscape(fmt.Sprintf("%sT00:00:00Z", dayStr))
@@ -119,7 +122,7 @@ func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Req
 			startTime, _ := utils.ParseDateTime(event.Start.DateTime, event.Start.Timezone)
 
 			// add event_id, phonenumber to firestore
-			err := app.firestore.SaveAppointment(whatsapp, event.ID)
+			err := app.firestore.SaveAppointment(r.Context(), whatsapp, event.ID)
 			if err != nil {
 				app.logger.Error(err.Error())
 			}
@@ -148,23 +151,76 @@ func (app *application) WhatsappWebhookInitializer(w http.ResponseWriter, r *htt
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write([]byte(challenge)); err != nil {
 			app.logger.Error(err.Error(), "message", "Unable to verify token hook")
+			return
 		}
-		return
-}
-	app.logger.Info("200", "message", "Whatsapp hook verified")
+		app.logger.Info("200", "message", "Whatsapp hook verified")
+	}
+	return
 }
 
 func (app *application) WhatsappWebhookHandler(w http.ResponseWriter, r *http.Request) {
-	// get response and parse response
-	var wrapper struct {
-		Messages []WhatsappButtonMessage `json:"messages"`
-	}
 
-	if err := json.NewDecoder(r.Body).Decode(&wrapper); err != nil {
+	// Read and log raw payload
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		app.logger.Error(err.Error(), "message", "Error reading webhook body")
+	}
+	// fmt.Printf("Raw webhook payload: %s\n", string(body))
+
+	// Decode the payload
+	var payload WhatsappButtonMessage
+	if err := json.Unmarshal(body, &payload); err != nil {
 		app.logger.Error(err.Error(), "message", "Error decoding webhook response")
 		return
 	}
-	
-	// check if confirm or cancel is clicked
-	// change category
+	// fmt.Printf("Decoded webhook payload: %+v\n", payload)
+
+	// Extract the button click details
+	if len(payload.Entry) > 0 &&
+		len(payload.Entry[0].Changes) > 0 &&
+		len(payload.Entry[0].Changes[0].Value.Messages) > 0 &&
+		payload.Entry[0].Changes[0].Value.Messages[0].Type == "button" {
+
+		message := payload.Entry[0].Changes[0].Value.Messages[0]
+		whatsapp := "+" + message.From
+		// fmt.Printf("Phone number: %s, Button clicked: %s\n", whatsapp, message.Button.Text)
+
+		// Retrieve appointment from Firestore
+		event, err := app.firestore.GetAppointment(r.Context(), whatsapp)
+		if err != nil {
+			app.logger.Error(err.Error(), "message", "Error getting appointment")
+			return
+		}
+
+		// Check if Confirm or Cancel button was clicked
+		if message.Button.Text == "Cancel" {
+			// Update Outlook event category to "NO SHOW"
+			err = app.changeOutlookCategory(event.EventID)
+			if err != nil {
+				app.logger.Error(err.Error(), "message", "Error changing outlook category")
+				return
+			}
+
+			// Send Cancel confirmation on WhatsApp
+			if err = app.sender.replyWhatsappMessage(whatsapp, cancelled, message.ID); err != nil {
+				app.logger.Error(err.Error(), "message", "Error sending cancel whatsapp message")
+				return
+			}
+
+		} else if message.Button.Text == "Confirm" {
+			// Send confirmation reply
+			if err = app.sender.replyWhatsappMessage(whatsapp, confirmed, message.ID); err != nil {
+				app.logger.Error(err.Error(), "message", "Error sending confirm whatsapp message")
+				return
+			}
+		}
+
+		// Delete appointment from Firestore after handling the response
+		if err = app.firestore.DeleteAppointment(whatsapp); err != nil {
+			app.logger.Error(err.Error(), "message", "Error deleting appointment")
+			return
+		}
+	} else {
+		app.logger.Info("Webhook received but payload missing expected message data.")
+	}
 }
