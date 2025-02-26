@@ -130,15 +130,17 @@ func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Req
 			// send whatsapp message
 			err = app.sender.sendAppointmentMessage(whatsapp, template, imageURL, procedure, startTime)
 			if err != nil {
-				app.logger.Error(err.Error(), "message", "error sending welcome message")
+				app.logger.Error(err.Error(), "message", "error sending appointment message")
+			}
+			if err == nil {
+				app.logger.Info("WhatsApp message sent successfully", "number", whatsapp)
 			}
 		} else {
 			app.logger.Info(event.Subject, "message", "Event subject not well formatted")
 			continue
 		}
-
 	}
-
+	return
 }
 
 func (app *application) WhatsappWebhookInitializer(w http.ResponseWriter, r *http.Request) {

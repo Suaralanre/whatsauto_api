@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/Suaralanre/whatsauto_api/internal/utils"
@@ -160,6 +161,8 @@ func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, proc
 	if err != nil {
 		return fmt.Errorf("Error Serializing payload: %v", err)
 	}
+	// w.logger.Info("WhatsApp Payload", "payload", string(jsonData))
+
 
 	req, err := http.NewRequest("POST", w.APIURL, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -169,7 +172,9 @@ func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, proc
 	req.Header.Set("Authorization", "Bearer "+w.Token)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Error sending request: %v", err.Error())
@@ -177,11 +182,14 @@ func (w *WhatsAppSender) sendAppointmentMessage(number, template, imageURL, proc
 	defer resp.Body.Close()
 
 	status := resp.StatusCode
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyString := string(bodyBytes)
 
 	if status == http.StatusOK {
 		return nil
 	}
-	return fmt.Errorf("Error sending whatsapp message: %v", http.StatusInternalServerError)
+	return fmt.Errorf("Error sending WhatsApp message: status %d, response: %s", status, bodyString)
+	
 }
 
 func (w *WhatsAppSender) sendWelcomeMessage(number, template, imageURL, name, title string) error {
@@ -301,7 +309,7 @@ func (w *WhatsAppSender) replyWhatsappMessage(number, body, messageID string) er
 }
 
 func (app *application) changeOutlookCategory(eventID, userID string) error {
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/events/%s",userID, eventID)
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/events/%s", userID, eventID)
 
 	payload, err := json.Marshal(map[string]interface{}{
 		"categories": []string{"NO SHOW"},
