@@ -160,6 +160,7 @@ func (app *application) WhatsappWebhookInitializer(w http.ResponseWriter, r *htt
 
 func (app *application) WhatsappWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
+	userID := utils.GetEnv("OUTLOOK_EMAIL", "")
 	// Read and log raw payload
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -195,7 +196,7 @@ func (app *application) WhatsappWebhookHandler(w http.ResponseWriter, r *http.Re
 		// Check if Confirm or Cancel button was clicked
 		if message.Button.Text == "Cancel" {
 			// Update Outlook event category to "NO SHOW"
-			err = app.changeOutlookCategory(event.EventID)
+			err = app.changeOutlookCategory(event.EventID, userID)
 			if err != nil {
 				app.logger.Error(err.Error(), "message", "Error changing outlook category")
 				return

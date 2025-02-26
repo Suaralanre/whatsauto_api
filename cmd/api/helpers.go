@@ -300,8 +300,8 @@ func (w *WhatsAppSender) replyWhatsappMessage(number, body, messageID string) er
 	return fmt.Errorf("Error sending whatsapp message: %v", err)
 }
 
-func (app *application) changeOutlookCategory(eventID string) error {
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/me/events/%s", eventID)
+func (app *application) changeOutlookCategory(eventID, userID string) error {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/events/%s",userID, eventID)
 
 	payload, err := json.Marshal(map[string]interface{}{
 		"categories": []string{"NO SHOW"},
@@ -314,6 +314,7 @@ func (app *application) changeOutlookCategory(eventID string) error {
 
 	req.Header.Add("Authorization", "Bearer "+*app.outlook)
 	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Prefer", "outlook.timezone=\"Africa/Lagos\"")
 
 	resp, err := client.Do(req)
