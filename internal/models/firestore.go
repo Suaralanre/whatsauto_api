@@ -2,7 +2,7 @@ package models
 
 import "context"
 
-func (f *FirestoreClient) SaveAppointment(ctx context.Context, phoneNumber, eventID string) error {
+func (f *FirestoreClient) SaveAppointment(ctx context.Context, phoneNumber, eventID, subject string) error {
 	client := f.Client
 
 	_, err := client.Collection("appointments").Doc(phoneNumber).Set(ctx, Appointment{

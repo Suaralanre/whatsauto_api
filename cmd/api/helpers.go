@@ -335,3 +335,62 @@ func (app *application) changeOutlookCategory(eventID, userID string) error {
 	}
 	return nil
 }
+
+func (app *application) changeOutlookSubject(eventID, userID string) error {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/events/%s", userID, eventID)
+
+	getReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("Error creating GET request: %v", err)
+	}
+	getReq.Header.Add("Authorization", "Bearer "+*app.outlook)
+	getReq.Header.Add("Accept", "application/json")
+	getReq.Header.Add("Prefer", "outlook.timezone=\"Africa/Lagos\"")
+
+	client := &http.Client{}
+	getResp, err := client.Do(getReq)
+	if err != nil {
+		return fmt.Errorf("failed to fetch event: status %d", getResp.StatusCode)
+	}
+	var eventData struct{
+		Subject string `json:"subject"`
+	}
+
+	if err := json.NewDecoder(getResp.Body).Decode(&eventData); err != nil {
+		return fmt.Errorf("Error decoding event details: %v", err)
+	}
+	
+	// add tick emoji to beginning of subject
+	updatedSubject := eventData.Subject
+	if !strings.HasPrefix(updatedSubject, "✅") {
+		updatedSubject = "✅ " + updatedSubject
+	}
+
+	payload, err := json.Marshal(map[string]interface{}{
+		"subject": updatedSubject,
+	})
+	if err != nil {
+		return fmt.Errorf("Error marshalling payload: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("Error creating PATCH request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+*app.outlook)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Prefer", "outlook.timezone=\"Africa/Lagos\"")
+	
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request to patch outlook event subject: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
+		app.logger.Info("Outlook event category updated successfully")
+	}
+	return nil
+}

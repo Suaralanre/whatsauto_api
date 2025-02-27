@@ -122,7 +122,7 @@ func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Req
 			startTime, _ := utils.ParseDateTime(event.Start.DateTime, event.Start.Timezone)
 
 			// add event_id, phonenumber to firestore
-			err := app.firestore.SaveAppointment(r.Context(), whatsapp, event.ID)
+			err := app.firestore.SaveAppointment(r.Context(), whatsapp, event.ID, event.Subject)
 			if err != nil {
 				app.logger.Error(err.Error())
 			}
@@ -211,6 +211,10 @@ func (app *application) WhatsappWebhookHandler(w http.ResponseWriter, r *http.Re
 			}
 
 		} else if message.Button.Text == "Confirm" {
+			// Add a tick to outlook event subject
+			if err = app.changeOutlookSubject(event.EventID, userID); err != nil {
+				app.logger.Error(err.Error(), "message", "Error changing outlook subject")
+			}
 			// Send confirmation reply
 			if err = app.sender.replyWhatsappMessage(whatsapp, confirmed, message.ID); err != nil {
 				app.logger.Error(err.Error(), "message", "Error sending confirm whatsapp message")
