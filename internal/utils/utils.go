@@ -33,20 +33,20 @@ func ParseEventSubject(subject string) (string, string, string) {
 
 // Parses the start and end time from outlook
 func ParseDateTime(datetimeStr, timezone string) (string, error) {
-	// Parse the time without timezone first
+	// Parse the time without timezone
 	parsedTime, err := time.Parse("2006-01-02T15:04:05.0000000", datetimeStr)
 	if err != nil {
 		return "", fmt.Errorf("Error parsing event time: %v", err)
 	}
 
-	// Load the location from the timezone string
-	loc, err := time.LoadLocation(timezone)
-	if err != nil {
-		return "", fmt.Errorf("Error loading location: %v", err)
-	}
+	// // Load the location from the timezone string
+	// loc, err := time.LoadLocation(timezone)
+	// if err != nil {
+	// 	return "", fmt.Errorf("Error loading location: %v", err)
+	// }
 
-	// Convert the time to the specified timezone
-	parsedTime = parsedTime.In(loc)
+	// // Convert the time to the specified timezone
+	// parsedTime = parsedTime.In(loc)
 
 	return parsedTime.Format("02 Jan 2006, 03:04 PM"), nil
 }

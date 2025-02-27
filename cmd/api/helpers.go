@@ -390,7 +390,7 @@ func (app *application) changeOutlookSubject(eventID, userID string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
-		app.logger.Info("Outlook event category updated successfully")
+		app.logger.Info("Outlook event subject updated successfully")
 	}
 	return nil
 }
