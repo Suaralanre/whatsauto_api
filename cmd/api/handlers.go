@@ -117,12 +117,13 @@ func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	for _, event := range events {
-		if strings.HasPrefix(event.Subject, "+") {
-			whatsapp, procedure, _ := utils.ParseEventSubject(event.Subject)
+		subject := strings.TrimSpace(event.Subject)
+		if strings.HasPrefix(subject, "+") {
+			whatsapp, procedure, _ := utils.ParseEventSubject(subject)
 			startTime, _ := utils.ParseDateTime(event.Start.DateTime, event.Start.Timezone)
 
 			// add event_id, phonenumber to firestore
-			err := app.firestore.SaveAppointment(r.Context(), whatsapp, event.ID, event.Subject)
+			err := app.firestore.SaveAppointment(r.Context(), whatsapp, event.ID, subject)
 			if err != nil {
 				app.logger.Error(err.Error())
 			}
@@ -136,7 +137,7 @@ func (app *application) CalendarEventsHandler(w http.ResponseWriter, r *http.Req
 				app.logger.Info("WhatsApp message sent successfully", "number", whatsapp)
 			}
 		} else {
-			app.logger.Info(event.Subject, "message", "Event subject not well formatted")
+			app.logger.Info(subject, "message", "Event subject not well formatted")
 			continue
 		}
 	}
